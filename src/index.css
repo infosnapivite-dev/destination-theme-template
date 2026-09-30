@@ -1,0 +1,156 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-navy-dark: #071321;
+    --color-navy: #0B1B2B;
+    --color-navy-light: #16283D;
+    --color-cream-light: #FAF8F5;
+    --color-cream: #F5EFEB;
+    --color-cream-dark: #EADFD5;
+    --color-taupe: #A89F91;
+    --color-gold: #C6A767;
+    --color-heart: #E03E3E;
+  }
+
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    box-sizing: border-box;
+  }
+
+  body {
+    background-color: #060D17;
+    color: #1A1A1A;
+    font-family: 'Montserrat', sans-serif;
+  }
+}
+
+/* Custom Font Family Utilities */
+.font-editorial {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+.font-cinzel {
+  font-family: 'Cinzel', serif;
+}
+
+.font-display {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.font-script {
+  font-family: 'Pinyon Script', 'Alex Brush', cursive;
+}
+
+.font-handwriting {
+  font-family: 'Alex Brush', 'Pinyon Script', cursive;
+}
+
+.font-ticket {
+  font-family: 'Space Mono', monospace;
+}
+
+.font-body {
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Zero-Flickering Hardware Acceleration */
+.gpu-accelerated {
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform, opacity;
+}
+
+/* Custom Scrollbar Styles for Mockup */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.subtle-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.subtle-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.subtle-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+}
+.subtle-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Vintage Ticket / Stamp Perforation Borders */
+.stamp-border {
+  background-color: var(--color-cream);
+  position: relative;
+  background-image: 
+    radial-gradient(circle at 0px 50%, transparent 6px, var(--color-cream) 7px),
+    radial-gradient(circle at 100% 50%, transparent 6px, var(--color-cream) 7px);
+  background-repeat: repeat-y;
+  background-size: 100% 24px;
+}
+
+.scalloped-stamp-card {
+  position: relative;
+  background: #F5EFEB;
+  border-radius: 4px;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.25);
+}
+
+/* Vintage Paper Noise / Texture Overlay */
+.paper-texture {
+  background-color: #F6F3EC;
+  background-image: radial-gradient(#d3c7b6 0.75px, transparent 0.75px), radial-gradient(#d3c7b6 0.75px, #F6F3EC 0.75px);
+  background-size: 30px 30px;
+  background-position: 0 0, 15px 15px;
+}
+
+.paper-texture-dark {
+  background-color: #0B1B2B;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 0.75px, transparent 0.75px);
+  background-size: 24px 24px;
+}
+
+/* Dotted path animation */
+@keyframes dash {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+.animate-flight-path {
+  stroke-dasharray: 6, 6;
+  animation: dash 20s linear infinite;
+}
+
+/* Rubber Stamp Glow and Texture */
+.stamp-ink {
+  mix-blend-mode: multiply;
+  opacity: 0.85;
+}
+
+/* iPhone 15 Pro Bezel & Reflections */
+.iphone-frame-glow {
+  box-shadow: 
+    0 0 0 1.5px rgba(255, 255, 255, 0.15),
+    0 0 0 3.5px #1E222B,
+    0 25px 70px -15px rgba(0, 0, 0, 0.85),
+    0 0 100px 10px rgba(198, 167, 103, 0.08);
+}
+
+/* Glassmorphism utility */
+.glass-panel {
+  background: rgba(11, 27, 43, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
