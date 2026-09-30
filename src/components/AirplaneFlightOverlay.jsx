@@ -3,12 +3,12 @@ import { motion } from 'framer-motion';
 
 /**
  * AirplaneFlightOverlay
- * - Solid white airplane SVG (fill="white") rotated 45deg to face top-right
- * - Viewport diagonal trajectory: x: ['-10vw', '110vw'], y: ['110vh', '-20vh']
- * - Dynamic scaling: scale: [0.5, 3.5]
+ * - Solid white commercial passenger airliner (fill="white") rotated 30deg to face top-right flight vector
+ * - Container-relative diagonal trajectory: left: ['-15%', '115%'], top: ['108%', '-15%']
+ * - Dynamic scaling: scale: [0.7, 1.4, 2.2, 2.8] for dramatic takeoff perspective
  * - Exact duration: 1.3s with easeInOut
- * - Staggered dissipating smoke trail (scale: [0.5, 4], opacity: [0.6, 0], filter: 'blur(10px)')
- * - Fully GPU accelerated with translate3d(0,0,0) and z-index: 50
+ * - Staggered dissipating smoke trail and continuous glowing contrail
+ * - Fully GPU accelerated with translate3d and z-index: 50
  */
 export default function AirplaneFlightOverlay({ onComplete }) {
   return (
@@ -16,44 +16,76 @@ export default function AirplaneFlightOverlay({ onComplete }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
+      transition={{ duration: 0.15 }}
       className="absolute inset-0 pointer-events-none z-50 overflow-hidden"
     >
-      {/* Ambient Departure Atmospheric Glow Flash */}
+      {/* Ambient Departure Atmospheric Golden Flare in Center */}
       <motion.div
-        initial={{ scale: 0.3, opacity: 0 }}
-        animate={{ scale: 2.8, opacity: [0, 0.5, 0] }}
-        transition={{ duration: 1.1, ease: 'easeOut' }}
-        className="absolute w-72 h-72 rounded-full bg-radial from-[#C6A767]/30 via-[#C6A767]/10 to-transparent blur-3xl pointer-events-none"
+        initial={{ scale: 0.4, opacity: 0 }}
+        animate={{ scale: 2.6, opacity: [0, 0.45, 0] }}
+        transition={{ duration: 1.2, ease: 'easeOut' }}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-radial from-[#C6A767]/35 via-[#C6A767]/10 to-transparent blur-3xl pointer-events-none"
       />
+
+      {/* Glowing Contrail Line along the flight vector */}
+      <svg
+        className="absolute inset-0 w-full h-full pointer-events-none overflow-visible"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <linearGradient id="takeoffContrail" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#C6A767" stopOpacity="0" />
+            <stop offset="40%" stopColor="#FAF8F5" stopOpacity="0.8" />
+            <stop offset="90%" stopColor="#FFFFFF" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#FFFFFF" stopOpacity="1" />
+          </linearGradient>
+        </defs>
+        <motion.line
+          x1="-10"
+          y1="110"
+          x2="110"
+          y2="-10"
+          stroke="url(#takeoffContrail)"
+          strokeWidth="1.2"
+          strokeDasharray="3 2"
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{
+            pathLength: [0, 1],
+            opacity: [0, 0.7, 0.9, 0]
+          }}
+          transition={{
+            duration: 1.3,
+            ease: 'easeInOut',
+            times: [0, 0.2, 0.8, 1]
+          }}
+        />
+      </svg>
 
       {/* Diagonal Airplane Flight Moving Across Entire Screen */}
       <motion.div
         initial={{
-          x: '-10vw',
-          y: '110vh',
-          scale: 0.5,
+          left: '-15%',
+          top: '108%',
+          scale: 0.7,
           opacity: 0
         }}
         animate={{
-          x: ['-10vw', '110vw'],
-          y: ['110vh', '-20vh'],
-          scale: [0.5, 3.5],
+          left: ['-15%', '115%'],
+          top: ['108%', '-15%'],
+          scale: [0.7, 1.4, 2.2, 2.8],
           opacity: [0, 1, 1, 1, 0]
         }}
         transition={{
           duration: 1.3, // Exactly 1.3 seconds
           ease: 'easeInOut',
-          times: [0, 0.1, 0.5, 0.9, 1]
+          times: [0, 0.1, 0.5, 0.88, 1]
         }}
         onAnimationComplete={onComplete}
         style={{
           position: 'absolute',
-          left: 0,
-          top: 0,
-          transform: 'translate3d(0, 0, 0)',
-          backfaceVisibility: 'hidden',
-          willChange: 'transform, opacity'
+          transform: 'translate(-50%, -50%)',
+          willChange: 'left, top, transform, opacity'
         }}
         className="gpu-accelerated flex items-center justify-center pointer-events-none"
       >
@@ -63,26 +95,26 @@ export default function AirplaneFlightOverlay({ onComplete }) {
           {[0, 1, 2, 3].map((i) => (
             <motion.div
               key={i}
-              initial={{ scale: 0.5, opacity: 0.6 }}
+              initial={{ scale: 0.4, opacity: 0.7 }}
               animate={{
-                scale: [0.5, 4],
-                opacity: [0.6, 0]
+                scale: [0.4, 3.2],
+                opacity: [0.7, 0]
               }}
               transition={{
-                duration: 0.6,
+                duration: 0.5,
                 repeat: Infinity,
-                delay: i * 0.12,
+                delay: i * 0.1,
                 ease: 'easeOut'
               }}
               style={{
                 position: 'absolute',
-                bottom: `${-16 - i * 14}px`,
-                left: `${-16 - i * 14}px`,
-                width: '26px',
-                height: '26px',
+                bottom: `${-14 - i * 12}px`,
+                left: `${-14 - i * 12}px`,
+                width: '24px',
+                height: '24px',
                 borderRadius: '50%',
-                backgroundColor: 'rgba(255, 255, 255, 0.75)',
-                filter: 'blur(10px)',
+                backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                filter: 'blur(8px)',
                 transform: 'translate3d(0, 0, 0)',
                 willChange: 'transform, opacity'
               }}
@@ -92,34 +124,34 @@ export default function AirplaneFlightOverlay({ onComplete }) {
           {/* Engine Contrail Core Glow */}
           <motion.div
             animate={{
-              opacity: [0.5, 0.95, 0.4],
-              scale: [0.9, 1.35, 0.9]
+              opacity: [0.6, 1, 0.5],
+              scale: [0.9, 1.4, 0.9]
             }}
             transition={{ duration: 0.25, repeat: Infinity }}
             style={{
               position: 'absolute',
-              bottom: '-20px',
-              left: '-20px',
-              width: '40px',
-              height: '40px',
+              bottom: '-18px',
+              left: '-18px',
+              width: '36px',
+              height: '36px',
               borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.45) 45%, transparent 70%)',
-              filter: 'blur(6px)',
+              background: 'radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(198,167,103,0.6) 45%, transparent 75%)',
+              filter: 'blur(5px)',
               transform: 'translate3d(0, 0, 0)'
             }}
           />
 
-          {/* Solid White Commercial Passenger Jet (fill="white") rotated 45deg to face top-right trajectory */}
+          {/* Solid White Commercial Passenger Jet (fill="white") rotated 30deg to face top-right trajectory */}
           <div
             style={{
-              transform: 'rotate(45deg)',
-              filter: 'drop-shadow(0 0 16px rgba(255, 255, 255, 0.9)) drop-shadow(0 0 32px rgba(198, 167, 103, 0.5))'
+              transform: 'rotate(30deg)',
+              filter: 'drop-shadow(0 0 16px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 30px rgba(198, 167, 103, 0.75))'
             }}
             className="relative text-white"
           >
             <svg
-              width="72"
-              height="72"
+              width="68"
+              height="68"
               viewBox="0 0 100 100"
               fill="white"
               className="overflow-visible"
@@ -133,3 +165,4 @@ export default function AirplaneFlightOverlay({ onComplete }) {
     </motion.div>
   );
 }
+

@@ -103,7 +103,45 @@ export default function ThankYouSection() {
           </p>
         </motion.div>
 
+        {/* Minimal Company Instagram Redirect Link (Bottom Right Corner) */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.3, ease: 'easeOut' }}
+          className="pt-10 pb-1 flex items-center justify-end"
+          style={{ position: 'relative', zIndex: 20 }}
+        >
+          <a
+            href="https://www.instagram.com/snapivite/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center space-x-1.5 text-[#FAF8F5]/45 hover:text-[#C6A767] transition-all duration-300 group cursor-pointer pr-1"
+            title="Follow Snapivite on Instagram"
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-3 h-3 text-[#C6A767]/70 group-hover:text-[#C6A767] transition-colors"
+            >
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+            </svg>
+            <span className="text-[9.5px] font-ticket tracking-[0.22em] lowercase font-normal">
+              snapivite
+            </span>
+          </a>
+        </motion.div>
+
       </div>
     </section>
   );
 }
+
