@@ -1,17 +1,16 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import gsap from 'gsap';
+import airplaneImg from '../assets/airplane.png';
 
 /**
  * ScrollFlightPath
- * Continuous scroll-driven wavy flight path animation (GSAP).
- * - Authentic, sleek passenger airliner SVG silhouette.
- * - Starts from top-left corner of Home page.
- * - Responsive, snappy scroll tracking: plane leads the scroll and stays visible in viewport.
- * - Sinuous wave (right to left, left to right) across all sections.
+ * Continuous scroll-driven wavy flight path animation with zero lag.
+ * - Synchronized 1:1 with Lenis smooth scroll and native scroll.
+ * - Pre-sampled Lookup Table (LUT) for 120 FPS sub-millisecond transforms.
+ * - Zero GSAP tween delay: airplane moves in lockstep with the viewport in real time.
+ * - Layout measurements cached on resize to prevent layout thrashing during scroll.
  * - Dynamic SVG mask reveals dotted contrail ONLY behind the plane as it moves.
- * - Z-Index 15 layering: flies above headers, weaves behind elevated photo/calendar cards.
  */
-export default function ScrollFlightPath({ scrollContainerRef, mainRef }) {
+export default function ScrollFlightPath({ scrollContainerRef, mainRef, lenisRef }) {
   const pathRef = useRef(null);
   const maskPathRef = useRef(null);
   const planeRef = useRef(null);
@@ -20,8 +19,11 @@ export default function ScrollFlightPath({ scrollContainerRef, mainRef }) {
   const [totalLength, setTotalLength] = useState(1000);
   const [isReady, setIsReady] = useState(false);
 
-  // Smooth scroll progress tracker
-  const progressState = useRef({ progress: 0 });
+  // Cached geometry and lookup table to eliminate SVG DOM queries on scroll
+  const totalLengthRef = useRef(1000);
+  const maxScrollRef = useRef(3000);
+  const lutRef = useRef([]); // [{ x, y, angle }]
+  const lastProgressRef = useRef(0);
 
   // Generate smooth cubic Bézier wave path based on main content dimensions
   const buildWavePath = useCallback(() => {
@@ -32,22 +34,36 @@ export default function ScrollFlightPath({ scrollContainerRef, mainRef }) {
 
     const padLeft = Math.max(28, w * 0.08);
     const padRight = w - padLeft;
-    const midX = w * 0.5;
+
+    // Detect Thank You section to dynamically lock vertical coordinates to its exact layout
+    const thankYouEl =
+      mainRef.current.querySelector('#thank-you-section') ||
+      mainRef.current.querySelector('section:last-of-type');
+
+    const thankYouTop = thankYouEl ? thankYouEl.offsetTop : Math.round(h * 0.86);
+    const thankYouHeight = thankYouEl ? thankYouEl.offsetHeight : (h - thankYouTop);
+    const thankYouBottom = thankYouTop + thankYouHeight;
+    const endY = Math.max(thankYouTop + 160, thankYouBottom - 45);
+
+    // Update cached maxScroll
+    const container = scrollContainerRef?.current;
+    if (container) {
+      maxScrollRef.current = Math.max(1, container.scrollHeight - container.clientHeight);
+    }
 
     // Sinuous wave waypoints: starting from top-left corner (P0) down through each section
     const waypoints = [
-      { x: padLeft, y: 38 },                     // P0: Top-left corner start
-      { x: padRight, y: h * 0.09 },              // HomeSection: Swoop down-right over header
-      { x: padLeft, y: h * 0.18 },               // HomeSection: Swoop left below couple photo
-      { x: padRight, y: h * 0.28 },              // SaveTheDate: Swoop right across calendar card
-      { x: padLeft, y: h * 0.38 },               // SaveTheDate: Swoop left into bottom date
-      { x: padRight, y: h * 0.49 },              // VenueSection: Swoop right across Villa Balbianello
-      { x: padLeft, y: h * 0.59 },               // VenueSection: Swoop left below logistics button
-      { x: padRight, y: h * 0.69 },              // TimelineSection: Swoop right across timeline nodes
-      { x: padLeft, y: h * 0.79 },               // TimelineSection: Swoop left into Dress Code
-      { x: padRight, y: h * 0.88 },              // DressCodeSection: Swoop right across color palette
-      { x: padLeft + 12, y: h * 0.94 },          // DressCodeSection: Swoop left under attire photos
-      { x: midX, y: h - 50 }                     // RsvpSection: Smooth landing at Lake Como footer
+      { x: padLeft, y: 38 },                                    // P0: Top-left corner start
+      { x: padRight, y: h * 0.09 },                             // HomeSection: Swoop down-right over header
+      { x: padLeft, y: h * 0.18 },                              // HomeSection: Swoop left below couple photo
+      { x: padRight, y: h * 0.28 },                             // SaveTheDate: Swoop right across calendar card
+      { x: padLeft, y: h * 0.38 },                              // SaveTheDate: Swoop left into bottom date
+      { x: padRight, y: h * 0.49 },                             // VenueSection: Swoop right across Villa Balbianello
+      { x: padLeft, y: h * 0.59 },                              // VenueSection: Swoop left below logistics button
+      { x: padRight, y: h * 0.69 },                             // TimelineSection: Swoop right across timeline nodes
+      { x: padLeft, y: Math.min(thankYouTop - 180, h * 0.78) }, // DressCodeSection: Swoop left into wardrobe
+      { x: padRight, y: thankYouTop },                          // Transition smoothly to right side at top of Thank You section
+      { x: padRight, y: endY }                                  // ThankYouSection: Pure straight vertical path on right side
     ];
 
     // Build continuous Bézier curve segments with smooth vertical handles
@@ -56,67 +72,101 @@ export default function ScrollFlightPath({ scrollContainerRef, mainRef }) {
     for (let i = 0; i < waypoints.length - 1; i++) {
       const p0 = waypoints[i];
       const p1 = waypoints[i + 1];
-      const dy = p1.y - p0.y;
 
-      // Smooth cubic Bézier control points
-      const cp1X = p0.x;
-      const cp1Y = p0.y + dy * 0.46;
-      const cp2X = p1.x;
-      const cp2Y = p1.y - dy * 0.46;
+      // If x coordinates match (as in the Thank You section straight vertical path), emit clean LineTo
+      if (Math.abs(p0.x - p1.x) < 0.1) {
+        d += ` L ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
+      } else {
+        const dy = p1.y - p0.y;
 
-      d += ` C ${cp1X.toFixed(1)} ${cp1Y.toFixed(1)}, ${cp2X.toFixed(1)} ${cp2Y.toFixed(1)}, ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
+        // Smooth cubic Bézier control points
+        const cp1X = p0.x;
+        const cp1Y = p0.y + dy * 0.46;
+        const cp2X = p1.x;
+        const cp2Y = p1.y - dy * 0.46;
+
+        d += ` C ${cp1X.toFixed(1)} ${cp1Y.toFixed(1)}, ${cp2X.toFixed(1)} ${cp2Y.toFixed(1)}, ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
+      }
     }
 
     setPathD(d);
-  }, [mainRef]);
+  }, [mainRef, scrollContainerRef]);
 
-  // Apply smooth coordinates and rotation to the airplane and update mask
+  // Ultra-fast transform update using pre-sampled LUT (zero SVG DOM queries during scroll)
   const updatePlaneTransform = useCallback((prog) => {
-    if (!pathRef.current) return;
-
-    const pathEl = pathRef.current;
-    const len = pathEl.getTotalLength();
-    if (!len || isNaN(len)) return;
+    const lut = lutRef.current;
+    if (!lut || lut.length === 0) return;
 
     const clamped = Math.max(0, Math.min(1, prog));
-    const dist = clamped * len;
+    const idx = clamped * (lut.length - 1);
+    const i0 = Math.floor(idx);
+    const i1 = Math.min(lut.length - 1, i0 + 1);
+    const t = idx - i0;
 
-    // Get exact position on curve
-    const pt = pathEl.getPointAtLength(dist);
+    const s0 = lut[i0];
+    const s1 = lut[i1];
 
-    // Compute tangent angle with forward and backward delta
-    const delta = 3.0;
-    const pAhead = pathEl.getPointAtLength(Math.min(len, dist + delta));
-    const pBehind = pathEl.getPointAtLength(Math.max(0, dist - delta));
+    // Interpolate coordinates
+    const x = s0.x + (s1.x - s0.x) * t;
+    const y = s0.y + (s1.y - s0.y) * t;
 
-    const dx = pAhead.x - pBehind.x;
-    const dy = pAhead.y - pBehind.y;
-    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+    // Shortest angular interpolation
+    let diff = (s1.angle - s0.angle) % 360;
+    if (diff > 180) diff -= 360;
+    if (diff < -180) diff += 360;
+    const angle = s0.angle + diff * t;
 
-    // Transform airplane element
+    // Apply transform directly to GPU-promoted layer
     if (planeRef.current) {
-      planeRef.current.style.transform = `translate3d(${pt.x.toFixed(2)}px, ${pt.y.toFixed(2)}px, 0) rotate(${angle.toFixed(2)}deg)`;
+      planeRef.current.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) rotate(${angle.toFixed(2)}deg)`;
     }
 
-    // Reveal active trail mask up to current distance
+    // Reveal active trail mask up to current progress
     if (maskPathRef.current) {
+      const len = totalLengthRef.current;
       maskPathRef.current.style.strokeDashoffset = `${len * (1 - clamped)}`;
     }
   }, []);
 
-  // Update total path length when path changes
+  // Pre-sample curve into lookup table whenever pathD changes
   useEffect(() => {
     if (pathRef.current && pathD) {
-      const len = pathRef.current.getTotalLength();
+      const pathEl = pathRef.current;
+      const len = pathEl.getTotalLength();
+      if (!len || isNaN(len)) return;
+
+      totalLengthRef.current = len;
       setTotalLength(len);
+
+      // Pre-sample 800 points along the path for instant O(1) lookups during scroll
+      const samples = [];
+      const numSamples = 800;
+      for (let i = 0; i <= numSamples; i++) {
+        const dist = (i / numSamples) * len;
+        const pt = pathEl.getPointAtLength(dist);
+
+        const delta = 2.5;
+        const pAhead = pathEl.getPointAtLength(Math.min(len, dist + delta));
+        const dx = pAhead.x - pt.x;
+        const dy = pAhead.y - pt.y;
+        let angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+        if (Math.abs(dx) < 0.05 && dy > 0) {
+          angle = 90;
+        }
+
+        samples.push({ x: pt.x, y: pt.y, angle });
+      }
+
+      lutRef.current = samples;
 
       if (maskPathRef.current) {
         maskPathRef.current.style.strokeDasharray = `${len} ${len}`;
-        maskPathRef.current.style.strokeDashoffset = `${len * (1 - progressState.current.progress)}`;
+        maskPathRef.current.style.strokeDashoffset = `${len * (1 - lastProgressRef.current)}`;
       }
 
       setIsReady(true);
-      updatePlaneTransform(progressState.current.progress);
+      updatePlaneTransform(lastProgressRef.current);
     }
   }, [pathD, updatePlaneTransform]);
 
@@ -131,41 +181,56 @@ export default function ScrollFlightPath({ scrollContainerRef, mainRef }) {
 
     observer.observe(mainRef.current);
     window.addEventListener('resize', buildWavePath);
+    window.addEventListener('load', buildWavePath);
+
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(buildWavePath);
+    }
 
     return () => {
       observer.disconnect();
       window.removeEventListener('resize', buildWavePath);
+      window.removeEventListener('load', buildWavePath);
     };
   }, [buildWavePath, mainRef]);
 
-  // Scroll listener with snappy, responsive GSAP tracking
+  // Direct, instantaneous scroll tracking with zero GSAP delay
   useEffect(() => {
-    const calcProgress = () => {
-      const container = scrollContainerRef?.current;
-      if (!container) return 0;
+    let cleanupLenis = null;
 
-      const scrollTop = container.scrollTop;
-      const scrollHeight = container.scrollHeight;
-      const clientHeight = container.clientHeight;
-
-      const maxScroll = Math.max(1, scrollHeight - clientHeight);
-      const rawProg = Math.min(1, Math.max(0, scrollTop / maxScroll));
-
-      return rawProg;
+    // Connect directly to Lenis smooth scroll callback for 1:1 lockstep tracking
+    const connectLenis = () => {
+      if (lenisRef?.current && !cleanupLenis) {
+        cleanupLenis = lenisRef.current.on('scroll', ({ progress }) => {
+          lastProgressRef.current = progress;
+          updatePlaneTransform(progress);
+        });
+        return true;
+      }
+      return false;
     };
 
-    const onScroll = () => {
-      const targetProg = calcProgress();
+    const connected = connectLenis();
 
-      // Fast, snappy GSAP momentum so plane doesn't lag behind the viewport
-      gsap.to(progressState.current, {
-        progress: targetProg,
-        duration: 0.16, // Snappy response so plane leads the scroll
-        ease: 'power1.out',
-        overwrite: 'auto',
-        onUpdate: () => {
-          updatePlaneTransform(progressState.current.progress);
-        }
+    // Fallback native scroll listener throttled to animation frames
+    let rafId = null;
+    const onScroll = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+
+        // Try connecting to Lenis if it became available
+        if (!cleanupLenis && connectLenis()) return;
+
+        const container = scrollContainerRef?.current;
+        if (!container) return;
+
+        const scrollTop = container.scrollTop;
+        const maxScroll = maxScrollRef.current || Math.max(1, container.scrollHeight - container.clientHeight);
+        const prog = Math.min(1, Math.max(0, scrollTop / maxScroll));
+
+        lastProgressRef.current = prog;
+        updatePlaneTransform(prog);
       });
     };
 
@@ -175,16 +240,18 @@ export default function ScrollFlightPath({ scrollContainerRef, mainRef }) {
     }
     window.addEventListener('scroll', onScroll, { passive: true });
 
-    // Initial position
+    // Initial positioning
     onScroll();
 
     return () => {
+      if (cleanupLenis) cleanupLenis();
+      if (rafId) cancelAnimationFrame(rafId);
       if (containerEl) {
         containerEl.removeEventListener('scroll', onScroll);
       }
       window.removeEventListener('scroll', onScroll);
     };
-  }, [scrollContainerRef, updatePlaneTransform]);
+  }, [scrollContainerRef, lenisRef, updatePlaneTransform]);
 
   return (
     <div
@@ -219,15 +286,9 @@ export default function ScrollFlightPath({ scrollContainerRef, mainRef }) {
               />
             </mask>
           )}
-
-          {/* Plane Glow Filter */}
-          <filter id="planeGlowFilter" x="-40%" y="-40%" width="180%" height="180%">
-            <feDropShadow dx="0" dy="1.5" stdDeviation="2" floodColor="rgba(0,0,0,0.6)" />
-            <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="rgba(255,255,255,0.5)" />
-          </filter>
         </defs>
 
-        {/* 1. Hidden measurement path for getPointAtLength */}
+        {/* 1. Hidden measurement path for getPointAtLength during initial LUT generation */}
         {pathD && (
           <path
             ref={pathRef}
@@ -261,27 +322,22 @@ export default function ScrollFlightPath({ scrollContainerRef, mainRef }) {
           transformOrigin: '0 0',
           willChange: 'transform',
           opacity: isReady ? 1 : 0,
-          transition: 'opacity 0.3s ease-out'
+          transition: 'opacity 0.25s ease-out'
         }}
       >
         {/* Centered Plane Container */}
         <div
-          className="relative -top-4 -left-4 w-8 h-8 flex items-center justify-center filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]"
+          className="relative -top-[17px] -left-[17px] w-[34px] h-[34px] flex items-center justify-center pointer-events-none"
         >
-          {/* Authentic Modern Commercial Passenger Airliner SVG (Facing Right 0° by default) */}
-          <svg
-            viewBox="0 0 40 40"
-            className="w-8 h-8 overflow-visible"
+          <img
+            src={airplaneImg}
+            alt="Airplane"
+            className="w-[34px] h-[34px] object-contain pointer-events-none select-none filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.65)] drop-shadow-[0_0_4px_rgba(255,255,255,0.35)]"
             style={{
-              filter: 'drop-shadow(0 0 5px rgba(255, 255, 255, 0.6))'
+              transform: 'rotate(44.8deg)',
+              transformOrigin: 'center center'
             }}
-          >
-            {/* Sleek Passenger Jet with swept main wings, fuselage, and tail stabilizers */}
-            <path
-              d="M 37 20 C 35 18.8, 28 17.2, 23 17 L 12 5 C 10.8 4.2, 9.5 4.8, 10 6.5 L 14 17.5 L 4 18 L 1.5 14.5 C 1 14, 0.2 14.2, 0.4 15.2 L 2 20 L 0.4 24.8 C 0.2 25.8, 1 26, 1.5 25.5 L 4 22 L 14 22.5 L 10 33.5 C 9.5 35.2, 10.8 35.8, 12 35 L 23 23 C 28 22.8, 35 21.2, 37 20 Z"
-              fill="#FFFFFF"
-            />
-          </svg>
+          />
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { Sparkles, Heart } from 'lucide-react';
 export default function ThankYouSection() {
   return (
     <section
+      id="thank-you-section"
       className="relative px-6 pt-16 pb-24 text-[#FAF8F5] overflow-hidden gpu-accelerated text-center"
       style={{ position: 'relative', zIndex: 10 }}
     >
@@ -103,20 +104,20 @@ export default function ThankYouSection() {
           </p>
         </motion.div>
 
-        {/* Minimal Company Instagram Redirect Link (Bottom Right Corner) */}
+        {/* Minimal Company Instagram Redirect Link (Bottom Center) */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.3, ease: 'easeOut' }}
-          className="pt-10 pb-1 flex items-center justify-end"
+          className="pt-10 pb-1 flex items-center justify-center"
           style={{ position: 'relative', zIndex: 20 }}
         >
           <a
             href="https://www.instagram.com/snapivite/"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center space-x-1.5 text-[#FAF8F5]/45 hover:text-[#C6A767] transition-all duration-300 group cursor-pointer pr-1"
+            className="inline-flex items-center space-x-1.5 text-[#FAF8F5]/45 hover:text-[#C6A767] transition-all duration-300 group cursor-pointer"
             title="Follow Snapivite on Instagram"
           >
             <svg

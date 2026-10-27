@@ -19,6 +19,7 @@ export default function App() {
   const [isFlying, setIsFlying] = useState(false);
   const scrollContainerRef = useRef(null);
   const mainRef = useRef(null);
+  const lenisRef = useRef(null);
 
   const handleStartBoarding = () => {
     // Reveal Home Page immediately and launch concurrent 1.3s flight overlay over it
@@ -43,6 +44,7 @@ export default function App() {
       touchMultiplier: 1.2,
       infinite: false
     });
+    lenisRef.current = lenis;
 
     let rafId;
     function raf(time) {
@@ -54,6 +56,7 @@ export default function App() {
     return () => {
       cancelAnimationFrame(rafId);
       lenis.destroy();
+      lenisRef.current = null;
     };
   }, [currentPage]);
 
@@ -98,10 +101,11 @@ export default function App() {
                 <MusicPlayer />
 
                 <main ref={mainRef} className="w-full bg-[#0B1B2B] text-[#FAF8F5] relative">
-                  {/* Continuous Scroll-Driven Airplane Wave Flight Path (GSAP) */}
+                  {/* Continuous Scroll-Driven Airplane Wave Flight Path */}
                   <ScrollFlightPath
                     scrollContainerRef={scrollContainerRef}
                     mainRef={mainRef}
+                    lenisRef={lenisRef}
                   />
 
                   {/* Section 1: Dear Friends and Family */}
