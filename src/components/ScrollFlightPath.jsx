@@ -10,7 +10,7 @@ import airplaneImg from '../assets/airplane.png';
  * - Layout measurements cached on resize to prevent layout thrashing during scroll.
  * - Dynamic SVG mask reveals dotted contrail ONLY behind the plane as it moves.
  */
-export default function ScrollFlightPath({ scrollContainerRef, mainRef, lenisRef }) {
+export default function ScrollFlightPath({ scrollContainerRef, mainRef, lenisRef, lenis }) {
   const pathRef = useRef(null);
   const maskPathRef = useRef(null);
   const planeRef = useRef(null);
@@ -196,31 +196,28 @@ export default function ScrollFlightPath({ scrollContainerRef, mainRef, lenisRef
 
   // Direct, instantaneous scroll tracking with zero GSAP delay
   useEffect(() => {
+    const activeLenis = lenis || lenisRef?.current;
     let cleanupLenis = null;
 
-    // Connect directly to Lenis smooth scroll callback for 1:1 lockstep tracking
-    const connectLenis = () => {
-      if (lenisRef?.current && !cleanupLenis) {
-        cleanupLenis = lenisRef.current.on('scroll', ({ progress }) => {
-          lastProgressRef.current = progress;
-          updatePlaneTransform(progress);
-        });
-        return true;
-      }
-      return false;
-    };
-
-    const connected = connectLenis();
+    if (activeLenis) {
+      cleanupLenis = activeLenis.on('scroll', (e) => {
+        const prog = typeof e?.progress === 'number' ? e.progress : 0;
+        lastProgressRef.current = prog;
+        updatePlaneTransform(prog);
+      });
+      // Synchronize immediately to current scroll position
+      const initialProg = typeof activeLenis.progress === 'number' ? activeLenis.progress : 0;
+      lastProgressRef.current = initialProg;
+      updatePlaneTransform(initialProg);
+    }
 
     // Fallback native scroll listener throttled to animation frames
     let rafId = null;
     const onScroll = () => {
+      if (cleanupLenis) return;
       if (rafId) return;
       rafId = requestAnimationFrame(() => {
         rafId = null;
-
-        // Try connecting to Lenis if it became available
-        if (!cleanupLenis && connectLenis()) return;
 
         const container = scrollContainerRef?.current;
         if (!container) return;
@@ -235,23 +232,27 @@ export default function ScrollFlightPath({ scrollContainerRef, mainRef, lenisRef
     };
 
     const containerEl = scrollContainerRef?.current;
-    if (containerEl) {
+    if (containerEl && !cleanupLenis) {
       containerEl.addEventListener('scroll', onScroll, { passive: true });
     }
-    window.addEventListener('scroll', onScroll, { passive: true });
-
-    // Initial positioning
-    onScroll();
+    if (!cleanupLenis) {
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    }
 
     return () => {
-      if (cleanupLenis) cleanupLenis();
+      if (typeof cleanupLenis === 'function') {
+        cleanupLenis();
+      } else if (cleanupLenis && activeLenis?.off) {
+        activeLenis.off('scroll', cleanupLenis);
+      }
       if (rafId) cancelAnimationFrame(rafId);
       if (containerEl) {
         containerEl.removeEventListener('scroll', onScroll);
       }
       window.removeEventListener('scroll', onScroll);
     };
-  }, [scrollContainerRef, lenisRef, updatePlaneTransform]);
+  }, [lenis, lenisRef, scrollContainerRef, updatePlaneTransform]);
 
   return (
     <div

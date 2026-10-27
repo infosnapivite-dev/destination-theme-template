@@ -152,17 +152,15 @@ export default function OpeningTicketPage({ onOpen }) {
               </div>
             </div>
 
-            {/* Names: AARAV and MEERA */}
-            <div className="text-center my-2">
-              <h1 className="text-3xl font-editorial tracking-[0.24em] font-semibold text-[#0B1B2B] uppercase">
+            {/* Names: AARAV & MEERA in one single row on mobile & desktop */}
+            <div className="text-center my-3 flex items-center justify-center space-x-2 whitespace-nowrap overflow-hidden">
+              <h1 className="text-[20px] xs:text-[23px] sm:text-2xl font-editorial tracking-[0.16em] sm:tracking-[0.2em] font-semibold text-[#0B1B2B] uppercase">
                 AARAV
               </h1>
-              <div className="relative my-[-6px]">
-                <span className="font-script text-3xl text-[#625343] italic block transform -rotate-2">
-                  and
-                </span>
-              </div>
-              <h1 className="text-3xl font-editorial tracking-[0.24em] font-semibold text-[#0B1B2B] uppercase">
+              <span className="font-script text-2xl xs:text-3xl text-[#786C5D] italic transform -rotate-3 select-none px-0.5">
+                &amp;
+              </span>
+              <h1 className="text-[20px] xs:text-[23px] sm:text-2xl font-editorial tracking-[0.16em] sm:tracking-[0.2em] font-semibold text-[#0B1B2B] uppercase">
                 MEERA
               </h1>
             </div>

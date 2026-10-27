@@ -32,9 +32,9 @@ export default function HomeSection() {
             </h2>
           </div>
 
-          {/* Couple Name */}
+          {/* Couple Name (Locked to 1 row on mobile screens) */}
           <div className="pt-2">
-            <h1 className="text-3xl sm:text-4xl font-editorial tracking-[0.24em] font-medium uppercase text-[#FAF8F5] drop-shadow-sm">
+            <h1 className="text-[20px] min-[360px]:text-[23px] min-[390px]:text-[26px] sm:text-4xl font-editorial tracking-[0.16em] sm:tracking-[0.24em] font-medium uppercase text-[#FAF8F5] drop-shadow-sm whitespace-nowrap">
               AARAV &amp; MEERA
             </h1>
             <div className="text-[9.5px] font-ticket tracking-[0.32em] uppercase text-[#C6A767]/90 mt-2 flex items-center justify-center space-x-2">
